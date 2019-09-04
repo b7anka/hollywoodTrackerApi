@@ -1,0 +1,127 @@
+<?php
+    require_once('functions.php');    
+    require_once('langs.php');
+
+    header("Access-Control-Allow-Origin: *");
+    header("Content-Type: application/json");
+
+    $msg = '';
+    $error = '';
+    $success = false;  
+    $results = [];
+    $code = '';  
+
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if(is_array($data))
+    {
+        $_POST = $data;
+    }
+
+    $lang = (!empty($_POST['lang']) ? $_POST['lang'] : 'en_US');
+
+    $langToUse = setLangToUse($lang);
+
+    if(empty($_POST['email']))
+    {
+        $msg = $langToUse[49];
+        $error = 403;
+        $success = false;
+    }
+    else
+    {        
+        $mail = $_POST['email'];                             
+
+        if(!verifyUser("",$mail))
+        {
+            $msg = $langToUse[50];
+            $error = 403;
+            $success = false;
+        }
+        else
+        {
+            $code = $token = generateCode(10);    
+            $result = fetchInfo(0,$mail);                          
+            $tempResult = [
+                "id"=>$result['id_user'],
+                "code"=>$code
+            ];               
+            array_push($results,$tempResult);  
+            $from = DEFAULT_EMAIL_FROM;
+            $nomeFrom = DEFAULT_NAME_FROM;
+            $to = $mail;
+            $ass = $langToUse[73];
+            $bodyToSend = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+            <html lang="pt">
+            <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            
+            <title>'.$langToUse[72].'</title>
+            
+            <style type="text/css">
+            </style>    
+            </head>
+            <body style="margin:0; padding:0; background-color:#F2F2F2;">
+            <center>
+                <table width="640" cellpadding="0" cellspacing="0" border="0" class="wrapper" bgcolor="#FFFFFF">
+                    <tr>
+                        <td height="10" style="font-size:10px; line-height:10px;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td align="center" valign="top">
+                
+                            <table width="600" cellpadding="0" cellspacing="0" border="0" class="container">
+                                <tr>
+                                <td align="center" valign="top">
+                                <img src="http://b7anka.com/hollywoodtrackerapi/images/logo.png" style="width:50%; height:auto;">
+                                </td>
+                                </tr>                                                
+                                <tr>
+                                    <td align="center" valign="top">
+                                        <p style="color:green; font-size:1.5rem; font-weight:800;">'.$langToUse[51].'</p>  
+                                        <p style="color:green; font-size:1.5rem; font-weight:800;">'.$code.'</p>
+                                        <p style="font-size:1.5rem; font-weight:800;">'.$langToUse[52].'</p>                                                                                                                                                                 
+                                    </td>
+                                </tr>
+                                <tr>                               
+                                </tr>
+                            </table>
+                
+                        </td>
+                    </tr>
+                    <tr>
+                        <td height="10" style="font-size:10px; line-height:10px;">&nbsp;</td>
+                    </tr>
+                </table>  
+            </center>
+            </body>
+            </html>';
+            $altBody = $langToUse[51].$token.$langToUse[52];           
+           
+                if(sendEmail($from,$nomeFrom,$to,"",$ass,"","",$bodyToSend,$body))
+                {                        
+                    $msg = $langToUse[53];
+                    $error = 0;
+                    $success = true; 
+                }
+                else
+                {     
+                    $msg = $langToUse[54];
+                    $error = 2;
+                    $success = false;                                          
+                }       
+        }
+    }
+
+    $response = [
+        'msg'=>$msg,
+        'error'=>$error,
+        'success'=>$success,
+        'results'=>$results
+        
+    ];
+
+    echo json_encode($response);
+?>
